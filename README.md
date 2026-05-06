@@ -99,6 +99,21 @@ Le skill `maintainability` expose une commande principale :
 
 ---
 
+#### 🗃 Purger l’archive des résolus
+
+```bash
+/maintainability archive-clear [--all | --keep N | --older-than <durée>]
+```
+
+* Purge `maintainability_resolved_archive.md` selon le critère choisi
+* Sans flag : supprime les entrées résolues il y a plus de 6 mois
+* `--older-than <durée>` : seuil personnalisé (`90d`, `6m`, `1y`)
+* `--keep N` : conserve uniquement les `N` entrées les plus récentes
+* `--all` : vide totalement l’archive
+* Demande confirmation avant écriture, recompute les compteurs d’IDs pour préserver leur monotonie
+
+---
+
 ## Fichiers générés
 
 Le skill maintient automatiquement plusieurs fichiers dans votre projet :
