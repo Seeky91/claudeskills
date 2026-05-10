@@ -194,8 +194,8 @@ Après le résumé en chat, si l'audit a produit ≥ 1 finding, proposer trois o
 - **(a) Quick-wins** : pour chaque finding du panel, exécuter le flux *Mode : double-check* (lecture du fichier, trace, blast radius, Δ LoC affiné, reco affinée, verdict). Écrire la section `Double-check (date)` dans chaque entrée du fichier findings. **Résumer en chat un seul message agrégé** avec un verdict par ID, pas un message par finding. Exemple :
   ```
   Double-check autonome terminé sur 3 quick-wins :
-    DOC-011 — GO (Δ -3, fix trivial : suppression docstring + commit unique)
-    INC-008 — GO-après-DUP-007 (Δ ±5, à fusionner avec le refactor de refund pour éviter de toucher 2× le même fichier)
+    DOC-011 — GO (Δ -3, fix trivial : suppression docstring + commit unique) — Apport : supprime un commentaire qui décrivait un comportement obsolète et trompait à la lecture.
+    INC-008 — GO-après-DUP-007 (Δ ±5, à fusionner avec le refactor de refund pour éviter de toucher 2× le même fichier) — Apport : un seul pattern de pagination dans le module billing, plus de divergence à arbitrer à chaque ajout d'endpoint.
     TST-005 — NO-GO (Δ -20 mais les 4 tests d'impl couvrent un edge case que le contrat ne capture pas — à archiver)
 
   Files mis à jour : .claude/maintainability_findings.md (+3 sections Double-check).
@@ -304,7 +304,7 @@ L'utilisateur répond en texte libre.
 
 **Action selon la réponse utilisateur** :
 
-- **`double-check B<n>`** : exécuter le flux *Mode : double-check* sur chaque finding du batch dans l'ordre. Sortie agrégée en un seul message (verdict par ID).
+- **`double-check B<n>`** : exécuter le flux *Mode : double-check* sur chaque finding du batch dans l'ordre. Sortie agrégée en un seul message (verdict par ID, avec l'`Apport` repris pour chaque GO / GO-mais-après-X).
 - **`fix B<n>`** (l'exécution applique systématiquement les checkpoints décrits ci-dessous — l'utilisateur n'a pas à le préciser) :
   1. Plan par finding (1-3 lignes : fichiers touchés, ordre, Δ LoC attendu) — réutilise `Reco affinée` si présente, sinon `Reco`.
   2. Afficher le plan global, demander un OK explicite. Si OK, exécuter dans l'ordre.
@@ -391,6 +391,7 @@ Déclenché par `/maintainability-double-check <ID>` (ex. `/maintainability-doub
   - **Δ LoC affiné** : ré-estimer à la lumière du blast radius et des contraintes. Si l'écart avec l'estimation initiale est > 50 %, expliquer brièvement pourquoi.
   - **Reco affinée** : ajustée à la lumière des contraintes découvertes, ou alternatives si l'originale ne tient plus.
   - **Verdict** : GO / NO-GO / GO-mais-après-X.
+  - **Apport** (uniquement si Verdict GO ou GO-mais-après-X — jamais sur NO-GO) : une seule phrase concrète qui nomme ce qui s'améliore. Une formulation générique type *"améliore la maintenabilité"* reste valable si elle est étoffée par le **comment** (ce qui rend le code plus maintenable, concrètement, dans ce cas précis). À l'agent de décider de la teneur — pas de catégorie imposée.
 4. **Possibilité de reclasser la sévérité** : si l'analyse montre que HIGH était excessif (effort L mais impact en réalité MED), proposer le changement à l'utilisateur. **Ne pas changer l'ID.**
 
 ### Écriture dans le fichier findings
@@ -398,7 +399,7 @@ Déclenché par `/maintainability-double-check <ID>` (ex. `/maintainability-doub
 Ajouter une section au sein de l'entrée existante du finding (avant la ligne `Status:` ou après `Détecté:`) :
 
 ```markdown
-- **Double-check (YYYY-MM-DD) :** Blast radius : 47 imports dans le projet, 12 tests touchés. Effort M (~1 jour, 4 commits incrémentaux). Faisabilité OK avec contraintes mineures (transactions à préserver). Δ LoC affiné : ~+85 (au lieu de ~+120 estimé : on regroupe routing + middleware au lieu de splitter en 5 fichiers). Reco affinée : splitter d'abord routing puis validation, persistance en dernier. Verdict : GO, prioriser après TST-009.
+- **Double-check (YYYY-MM-DD) :** Blast radius : 47 imports dans le projet, 12 tests touchés. Effort M (~1 jour, 4 commits incrémentaux). Faisabilité OK avec contraintes mineures (transactions à préserver). Δ LoC affiné : ~+85 (au lieu de ~+120 estimé : on regroupe routing + middleware au lieu de splitter en 5 fichiers). Reco affinée : splitter d'abord routing puis validation, persistance en dernier. Verdict : GO, prioriser après TST-009. Apport : chaque responsabilité d'`api_handler` devient testable indépendamment et débloque le refactor de routing prévu plus tard.
 ```
 
 Si la sévérité change, **également** modifier le titre de l'entrée :
@@ -408,7 +409,7 @@ Si la sévérité change, **également** modifier le titre de l'entrée :
 
 ### Sortie en chat
 
-Réponse complète en chat (l'utilisateur veut le détail pour décider) avec une copie de ce qui a été écrit dans le fichier + tout contexte additionnel utile (extraits de code des call sites, etc.).
+Réponse complète en chat (l'utilisateur veut le détail pour décider) avec une copie de ce qui a été écrit dans le fichier + tout contexte additionnel utile (extraits de code des call sites, etc.). L'`Apport` (si verdict GO / GO-mais-après-X) est repris tel quel.
 
 ## Mode : archive-clear
 
@@ -580,7 +581,7 @@ Source de vérité. Findings groupés en deux sections, plus un header de compte
 - **Δ LoC :** ~+120 (split en 4 modules avec imports/signatures partagées, ~30 LoC de boilerplate par module).
 - **Détecté :** 2026-04-22
 - **Status :** pending
-- **Double-check (2026-04-25) :** Blast radius : 47 imports, 12 tests touchés. Effort M (~1 jour, 4 commits incrémentaux). Faisabilité OK avec contraintes mineures (transactions à préserver). Δ LoC affiné : ~+85. Verdict : GO, prioriser après TST-009.
+- **Double-check (2026-04-25) :** Blast radius : 47 imports, 12 tests touchés. Effort M (~1 jour, 4 commits incrémentaux). Faisabilité OK avec contraintes mineures (transactions à préserver). Δ LoC affiné : ~+85. Verdict : GO, prioriser après TST-009. Apport : chaque responsabilité d'`api_handler` devient testable indépendamment et débloque le refactor de routing prévu plus tard.
 
 ## Resolved
 
