@@ -1,70 +1,91 @@
-# Sync du skill `maintainability` (et ses slash commands) du repo vers ~/.claude.
+# CLI d'installation des skills de ce repo vers ~/.claude.
+#
+# Les skills sont découverts dynamiquement dans .claude/skills/*.
+# Chaque skill <name> possède :
+#   - .claude/skills/<name>/      (SKILL.md + references/…)
+#   - .claude/commands/<name>/    (ses slash commands ; le sous-dossier est un
+#     namespace d'organisation, le nom des commandes reste celui des fichiers)
 #
 # Usage :
-#   make install   # sync repo → ~/.claude (alias : make sync)
-#   make diff      # voir ce qui diffère entre repo et ~/.claude
-#   make uninstall # supprime le skill + ses commands de ~/.claude
+#   make list                  # skills disponibles dans le repo
+#   make install               # installe tous les skills
+#   make install SKILL=foo     # installe un seul skill
+#   make diff                  # diff repo ↔ ~/.claude (tous les skills)
+#   make diff SKILL=foo        # diff pour un seul skill
+#   make uninstall SKILL=foo   # retire un skill de ~/.claude (confirmation)
+#   make uninstall             # retire tous les skills (confirmation)
 
-CLAUDE_DIR     := $(HOME)/.claude
-SKILL_NAME     := maintainability
-SKILL_SRC      := .claude/skills/$(SKILL_NAME)
-SKILL_DEST     := $(CLAUDE_DIR)/skills/$(SKILL_NAME)
-COMMANDS_SRC   := .claude/commands
-COMMANDS_DEST  := $(CLAUDE_DIR)/commands
+CLAUDE_DIR    := $(HOME)/.claude
+SKILLS_SRC    := .claude/skills
+COMMANDS_SRC  := .claude/commands
+SKILLS_DEST   := $(CLAUDE_DIR)/skills
+COMMANDS_DEST := $(CLAUDE_DIR)/commands
 
-.PHONY: help install sync diff uninstall
+ALL_SKILLS := $(notdir $(wildcard $(SKILLS_SRC)/*))
+SKILLS     := $(if $(SKILL),$(SKILL),$(ALL_SKILLS))
+
+.PHONY: help list install sync diff uninstall check-skill
 
 help:
 	@echo "Targets :"
-	@echo "  make install    Sync skill + commands du repo vers ~/.claude (alias : sync)"
-	@echo "  make diff       Affiche ce qui diffère entre le repo et ~/.claude"
-	@echo "  make uninstall  Retire le skill + ses commands de ~/.claude (demande confirmation)"
+	@echo "  make list                 Liste les skills du repo"
+	@echo "  make install [SKILL=x]    Sync skill(s) + commands vers ~/.claude"
+	@echo "  make diff [SKILL=x]       Diff entre le repo et ~/.claude"
+	@echo "  make uninstall [SKILL=x]  Retire skill(s) de ~/.claude (confirmation)"
 
-install: sync
+list:
+	@for s in $(ALL_SKILLS); do \
+		if [ -d $(SKILLS_DEST)/$$s ]; then state="installé"; else state="non installé"; fi; \
+		echo "  $$s ($$state)"; \
+	done
 
-sync:
-	@mkdir -p $(SKILL_DEST) $(COMMANDS_DEST)
-	@# Skill : --delete pour garantir que ~/.claude reflète exactement le repo
-	@# (le dossier skill est "owned" par ce repo).
-	@rsync -a --delete $(SKILL_SRC)/ $(SKILL_DEST)/
-	@# Commands : le dossier commands est partagé entre skills, donc pas de --delete
-	@# global. On purge d'abord les SEULS wrappers de ce skill (même glob scopé que
-	@# uninstall) pour qu'un wrapper renommé/retiré ne laisse pas de commande fantôme,
-	@# puis on resync — miroir exact sans toucher les commands des autres skills.
-	@rm -f $(COMMANDS_DEST)/maintainability*.md
-	@rsync -a $(COMMANDS_SRC)/maintainability*.md $(COMMANDS_DEST)/
-	@echo "Sync OK :"
-	@echo "  $(SKILL_DEST)/{SKILL.md, references/*}"
-	@echo "  $(COMMANDS_DEST)/maintainability*.md"
-
-diff:
-	@echo "=== Skill (repo → ~/.claude) ==="
-	@if [ -d $(SKILL_DEST) ]; then \
-		diff -rq $(SKILL_SRC) $(SKILL_DEST) || true; \
-	else \
-		echo "  $(SKILL_DEST) absent — lance 'make install'."; \
-	fi
-	@echo ""
-	@echo "=== Commands (repo → ~/.claude) ==="
-	@for cmd in $(COMMANDS_SRC)/maintainability*.md; do \
-		name=$$(basename $$cmd); \
-		dest=$(COMMANDS_DEST)/$$name; \
-		if [ ! -f "$$dest" ]; then \
-			echo "  $$name : absent de ~/.claude"; \
-		elif cmp -s "$$cmd" "$$dest"; then \
-			echo "  $$name : à jour"; \
-		else \
-			diff -u "$$cmd" "$$dest" || true; \
+check-skill:
+	@for s in $(SKILLS); do \
+		if [ ! -d $(SKILLS_SRC)/$$s ]; then \
+			echo "Skill inconnu : $$s (voir 'make list')"; exit 1; \
 		fi; \
 	done
 
-uninstall:
-	@printf "Supprimer $(SKILL_DEST) et $(COMMANDS_DEST)/maintainability*.md ? [y/N] "; \
+install: sync
+
+sync: check-skill
+	@mkdir -p $(SKILLS_DEST) $(COMMANDS_DEST)
+	@for s in $(SKILLS); do \
+		rsync -a --delete $(SKILLS_SRC)/$$s/ $(SKILLS_DEST)/$$s/; \
+		if [ -d $(COMMANDS_SRC)/$$s ]; then \
+			rsync -a --delete $(COMMANDS_SRC)/$$s/ $(COMMANDS_DEST)/$$s/; \
+		fi; \
+		echo "Installé : $$s"; \
+	done
+
+diff: check-skill
+	@for s in $(SKILLS); do \
+		echo "=== $$s : skill (repo → ~/.claude) ==="; \
+		if [ -d $(SKILLS_DEST)/$$s ]; then \
+			diff -ru $(SKILLS_SRC)/$$s $(SKILLS_DEST)/$$s || true; \
+		else \
+			echo "  non installé — lance 'make install SKILL=$$s'."; \
+		fi; \
+		echo ""; \
+		if [ -d $(COMMANDS_SRC)/$$s ]; then \
+			echo "=== $$s : commands (repo → ~/.claude) ==="; \
+			if [ -d $(COMMANDS_DEST)/$$s ]; then \
+				diff -ru $(COMMANDS_SRC)/$$s $(COMMANDS_DEST)/$$s || true; \
+			else \
+				echo "  non installées — lance 'make install SKILL=$$s'."; \
+			fi; \
+			echo ""; \
+		fi; \
+	done
+
+uninstall: check-skill
+	@printf "Retirer de ~/.claude : $(SKILLS) ? [y/N] "; \
 	read ans; \
 	if [ "$$ans" = "y" ] || [ "$$ans" = "Y" ]; then \
-		rm -rf $(SKILL_DEST); \
-		rm -f $(COMMANDS_DEST)/maintainability*.md; \
-		echo "Désinstallé."; \
+		for s in $(SKILLS); do \
+			rm -rf $(SKILLS_DEST)/$$s $(COMMANDS_DEST)/$$s; \
+			echo "Désinstallé : $$s"; \
+		done; \
 	else \
 		echo "Annulé."; \
 	fi
