@@ -76,6 +76,36 @@ Architecture : `SKILL.md` routeur mince + un playbook par mode dans `references/
 
 ---
 
+### 🧹 doc-cleanup
+
+Nettoyage **agressif** de la documentation de code — supprime le bruit de commentaires (la sur-documentation que pondent les agents : paraphrase du code, narration, docstrings qui répètent la signature), rend le code auto-documenté par renommage, et fiabilise le peu qui reste (corrige le drift commentaire ↔ code). C'est un **exécuteur** : le livrable est le code nettoyé dans l'arbre de travail.
+
+* **posture agressive par défaut** : charge de la preuve inversée (un commentaire est du bruit jusqu'à preuve d'utilité) — corrige le biais d'un agent qui sous-supprime spontanément
+* **heuristique de tri** : commentaire « *what* » = bruit ~90 % → supprimé ; « *why* » (métier, intention, tradeoff, sécurité, contrat d'API publique) → gardé **et** dé-drifté
+* **trois variantes** adaptées aux contraintes de contexte : campagne globale orchestrée en sous-agents sérialisés, zone unique en main-loop, ou fichiers touchés pendant la session (diff git)
+* **sécurité des renames** : grep des références dans tout le projet avant chaque rename, propagation à tous les sites, sérialisation pour éviter les courses inter-zones
+* **git en lecture seule** : édite l'arbre de travail mais ne commite jamais — la review se fait sur le diff non commité
+* **validation par zone** : lint/tests détectés et lancés après chaque zone entièrement appliquée (jamais par edit), dégradation gracieuse
+* couverture persistée par projet (`.claude/doccleanup_coverage.md`) pour la reprise de campagne
+
+Distinct de `maintainability` (qui n'a qu'un léger garde anti-drift sur la doc) : ici c'est le nettoyage dédié et agressif de la couche commentaires.
+
+Architecture : `SKILL.md` routeur mince + doctrine partagée + un playbook par mode dans `references/`.
+
+#### Slash commands
+
+| Commande | Rôle |
+|---|---|
+| `/doccleanup [path]` | Nettoie une zone (fichier ou dossier ; sélection auto si pas de path) |
+| `/doccleanup-project` | Campagne globale orchestrée, zone par zone, avec couverture persistée |
+| `/doccleanup-session [--touched]` | Nettoie les fichiers touchés dans la session (`--touched` : hunks modifiés seulement) |
+
+#### Fichiers générés dans le projet nettoyé
+
+* `.claude/doccleanup_coverage.md` — ledger de couverture (une ligne par passe, pour la reprise)
+
+---
+
 ## Ajouter un nouveau skill
 
 1. Créer `.claude/skills/<name>/` avec son `SKILL.md` (et `references/` si besoin).
