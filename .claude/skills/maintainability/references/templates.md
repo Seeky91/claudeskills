@@ -12,7 +12,7 @@ Alternatives : <zone-alt-1> (<motif>, <taille>) ou <zone-alt-2> (<motif>, <taill
 ```
 
 - `<motif>` reflète à la fois la nature de la zone et son état d'activité (cf. `references/mode-audit.md > C. Signal d'activité`) :
-  - **Couverture** : `jamais auditée`, `god file`, `pipeline traçable`.
+  - **Couverture** : `jamais auditée`, `god file`, `pipeline traçable`, `landmark architectural`, `composition root locale`, `façade publique structurante`.
   - **Activité** : `chaude — <N> commits depuis le dernier audit (YYYY-MM-DD)`, `froide — auditée le YYYY-MM-DD, aucune activité hors-maintainability depuis`.
   - Les deux peuvent se combiner : `pipeline traçable, chaud — 12 commits depuis 2026-03-08`.
   - En mode dégradé (repo non-git) : omettre toute mention d'activité, ne garder que le motif de couverture.

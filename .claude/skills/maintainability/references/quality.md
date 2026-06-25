@@ -7,9 +7,9 @@ Référence chargée par SKILL.md à l'exécution d'un audit, d'un crosscut ou d
 Sévérité = **impact × exposition**. Ce n'est pas un goût, c'est une calibration sur l'effet sur la maintenabilité du code.
 
 - **HIGH** — bloque ou alourdit toute évolution future de la zone.
-  Exemples : god file dans un hot path, duplication structurante (3+ copies de logique), drift de contrat utilisé partout, tests fondants empêchant tout refactor, cycle entre modules cœur, shotgun surgery récurrente (chaque feature touche 5+ fichiers).
+  Exemples : god file dans un hot path, composition root centrale qui force chaque évolution boot/runtime/web à modifier le parent, duplication structurante (3+ copies de logique), drift de contrat utilisé partout, tests fondants empêchant tout refactor, cycle entre modules cœur, shotgun surgery récurrente (chaque feature touche 5+ fichiers).
 - **MED** — friction notable mais contournable.
-  Exemples : incohérence locale de pattern, redondance modérée de tests, sprawl de config sur 2-3 modules, duplication 2× sur fonction utilitaire, couche pass-through, feature envy localisé.
+  Exemples : entrypoint ou root de sous-système qui mélange orchestration et wiring détaillé, incohérence locale de pattern, redondance modérée de tests, sprawl de config sur 2-3 modules, duplication 2× sur fonction utilitaire, couche pass-through, feature envy localisé.
 - **LOW** — cosmétique, nettoyage sans impact comportemental.
   Exemples : commentaire stale, var inutilisée, doublon trivial dans helper jamais touché, doc d'une fonction self-explanatory, généricité spéculative sur un helper peu touché.
 
@@ -43,7 +43,7 @@ Ce check intervient **en amont** de la production du finding. Il ne remplace pas
 
 ### Dogme ≠ défaut
 
-S'applique surtout aux dimensions de jugement (`ARC`, `IDM`, `CPX`). Un écart à un paradigme, un pattern ou une école d'architecture n'est **pas** un finding en soi. Le finding exige un **symptôme concret de friction de maintenabilité**, citable et vérifiable : la modification qui a dû toucher N fichiers, le call site qui contourne l'abstraction, le bug pattern récurrent, la fonction que personne n'ose toucher. « Ce n'est pas conforme à X » (hexagonale, clean architecture, style fonctionnel pur…) n'est jamais une observation — c'est une préférence. En l'absence de symptôme : abstention. Le cadre d'évaluation multi-paradigme vit dans `references/dimensions.md > Référentiel paradigmatique` ; ce garde-fou en est le pendant côté décision de produire.
+S'applique surtout aux dimensions de jugement (`ARC`, `IDM`, `CPX`). Un écart à un paradigme, un pattern ou une école d'architecture n'est **pas** un finding en soi. Le finding exige un **symptôme concret de friction de maintenabilité**, citable et vérifiable : la modification qui a dû toucher N fichiers, le call site qui contourne l'abstraction, le bug pattern récurrent, la fonction que personne n'ose toucher. « Ce n'est pas conforme à X » (hexagonale, clean architecture, style fonctionnel pur…) n'est jamais une observation — c'est une préférence. Une densité élevée peut être un symptôme légitime si elle rend la séquence difficile à scanner ou empêche de nommer les sous-concepts ; l'objectif reste de rendre les responsabilités lisibles sans cacher les décisions importantes derrière des noms vagues. En l'absence de symptôme : abstention. Le cadre d'évaluation multi-paradigme vit dans `references/dimensions.md > Référentiel paradigmatique` ; ce garde-fou en est le pendant côté décision de produire.
 
 ## Estimation Δ LoC
 

@@ -19,7 +19,7 @@ Référence chargée par SKILL.md à l'exécution d'un audit ou d'un crosscut, p
 | `TST` | Tests | Redondance, fragilité, ratio code/test qui dérive (tests devenant la majorité du code), tests d'impl plutôt que de contrat |
 | `CFG` | Config / feature-flags sprawl | Env vars / flags accumulés, certains plus jamais flippés ou lus |
 | `DOC` | Doc/commentaires | Désync code/doc, ET commentaires inutiles sur code self-explanatory (paraphrase d'un nom de fonction explicite) |
-| `ARC` | Architecture / couplage | Cycles inter-modules, responsabilité mal placée (feature envy), shotgun surgery, abstraction fuyante ou spéculative, couches pass-through, sur-fragmentation (cf. cadrage dédié) |
+| `ARC` | Architecture / couplage | Cycles inter-modules, responsabilité mal placée (feature envy), shotgun surgery, abstraction fuyante ou spéculative, composition roots opaques, couches pass-through, sur-fragmentation (cf. cadrage dédié) |
 
 **Hors scope du skill** : sécurité, performance, accessibilité, choix de stack. Précision : l'architecture *interne* du repo est couverte (`ARC`) ; le choix de stack/framework et l'architecture d'infra/déploiement restent exclus.
 
@@ -35,6 +35,7 @@ Plusieurs dimensions se partagent le territoire « structure du code ». Règle 
 | la taille d'un fichier/module | `SIZ` |
 | la transgression d'une frontière *déclarée* (import d'internes, contournement d'API publique) | `BND` |
 | un idiome d'*expression* du langage (gestion d'erreur, ressources, types, construction) | `IDM` |
+| le mélange de niveaux d'abstraction dans une fonction de composition (entrypoint, bootstrap, factory de sous-système) | `ARC` |
 | la forme des relations *entre unités* : placement des responsabilités, graphe de dépendances, qualité d'abstraction | `ARC` |
 
 `BND` vs `ARC` en une phrase : `BND` = une règle existe et est violée ; `ARC` = aucune règle violée, la structure elle-même est le défaut.
@@ -66,7 +67,7 @@ Le skill n'impose aucun dogme architectural unique. Les invariants évalués son
 1. **Détecter le(s) langage(s)** — mécanisme existant du cadrage `IDM` (extensions + fichiers de config).
 2. **Détecter le paradigme effectif du codebase** : signaux observables — traits/interfaces vs hiérarchies d'héritage, fonctions libres vs classes, immutabilité dominante, composition vs extension.
 3. **Référentiel = idiomes du langage ∩ conventions établies du codebase.** En cas de conflit, **la convention du codebase prime** (la cohérence interne bat le dogme). Exception : quand le codebase « se bat contre le langage » et que la friction est *observable et récurrente* (ex. hiérarchies d'héritage simulées par embedding en Go, mutabilité partagée qui combat le borrow checker Rust). Pourquoi cette règle : sans elle, le skill produirait des dizaines de findings contre un codebase Python délibérément orienté objet — du dogme, pas de la dette.
-4. **Évaluer relativement à ce référentiel**, jamais contre un style d'architecture nommé (hexagonale, clean, DDD) en tant que tel. La haute densité logique est une qualité quand elle reste cohésive — fragmenter du code dense et clair pour coller à une école est une régression.
+4. **Évaluer relativement à ce référentiel**, jamais contre un style d'architecture nommé (hexagonale, clean, DDD) en tant que tel. La densité logique peut être acceptable quand elle reste cohésive et lisible, mais réduire une densité qui gêne la lecture est une amélioration légitime. La régression à éviter est la fragmentation en wrappers triviaux ou en noms vagues qui rendent la navigation plus coûteuse que le bloc original.
 5. **Abstention sur méconnaissance** : même clause que le cadrage `IDM` — paradigme ou écosystème hors zone de confort → s'abstenir et l'annoncer en chat.
 
 Pas de table par langage dans le skill (elle vieillirait mal) : l'agent s'appuie sur sa connaissance des paradigmes du langage rencontré, le skill spécifie la méthode et les garde-fous.
@@ -93,21 +94,33 @@ Pas de table par langage dans le skill (elle vieillirait mal) : l'agent s'appuie
 
 - **Couplage** : cycles inter-modules ; couplage temporel (fichiers co-modifiés de façon répétée à travers une frontière de module **sans** relation d'import) ; module à fort fan-in × fort churn (beaucoup en dépendent ET il bouge tout le temps — aimant à casse).
 - **Cohésion** : responsabilité mal placée — feature envy (fonction qui manipule majoritairement les données d'un autre module) ; shotgun surgery (modifier un concept force à toucher N fichiers — seam manquant).
-- **Abstraction** : fuyante (les call sites doivent connaître l'interne — observable : un client importe le module ET ses internes dans le même fichier) ; spéculative (généricité jamais exercée : interface à implémenteur unique conçue « pour plus tard », paramètres jamais variés) ; couche pass-through / middle-man (module dont la majorité des exports délèguent sans rien ajouter) ; **sur-fragmentation** (logique éclatée en miettes d'indirection là où une unité dense et nommée serait plus lisible — le miroir de `SIZ`).
+- **Abstraction** : fuyante (les call sites doivent connaître l'interne — observable : un client importe le module ET ses internes dans le même fichier) ; spéculative (généricité jamais exercée : interface à implémenteur unique conçue « pour plus tard », paramètres jamais variés) ; couche pass-through / middle-man (module dont la majorité des exports délèguent sans rien ajouter) ; **sur-fragmentation** (logique éclatée en miettes d'indirection là où une unité cohésive et nommée serait plus lisible — le miroir de `SIZ`).
+- **Composition roots / entrypoints locaux** : point d'entrée applicatif, builder/factory de sous-système, façade publique structurante ou assembly de pipeline qui mélange orchestration haut niveau, construction détaillée de dépendances concrètes, configuration bas niveau et logique métier au point que la séquence de boot/traitement n'est plus scannable.
 
-**Preuve de friction exigée** : chaque finding `ARC` cite un symptôme concret et vérifiable — le commit qui a dû toucher 7 fichiers, le call site qui contourne l'abstraction, le cycle fichier:ligne, le bug pattern récurrent. « Ce n'est pas conforme au pattern X » n'est jamais une observation.
+**Preuve de friction exigée** : chaque finding `ARC` cite un symptôme concret et vérifiable — le commit qui a dû toucher 7 fichiers, le call site qui contourne l'abstraction, le cycle fichier:ligne, le bug pattern récurrent, la construction d'un sous-système qui oblige le parent à connaître ses détails internes. « Ce n'est pas conforme au pattern X » n'est jamais une observation.
 
-**Reco incrémentale obligatoire** : la reco d'un `ARC` propose un **premier pas** (inverser une dépendance, extraire une interface, déplacer une fonction), jamais une réorganisation big-bang. Le Δ LoC porte sur ce premier pas ; si la cible finale est plus large, la nommer dans la reco sans la chiffrer.
+**Reco incrémentale obligatoire** : la reco d'un `ARC` propose un **premier pas** (inverser une dépendance, extraire une interface, déplacer une fonction, introduire un constructeur/factory nommé possédé par le sous-système), jamais une réorganisation big-bang. Le Δ LoC porte sur ce premier pas ; si la cible finale est plus large, la nommer dans la reco sans la chiffrer.
 
 **Heuristiques de détection** (candidats à examiner, jamais findings — posture outillée standard) :
 
 - **Co-change git** : sur les ~200 derniers commits hors maintainability (réutiliser le set `commits_maintainability` du signal d'activité, cf. `references/mode-audit.md > C`), paires de fichiers fréquemment co-modifiées (ordre de grandeur : ≥ 5 co-occurrences) à travers une frontière de module sans lien d'import = couplage caché ; commits de feature touchant répétitivement ≥ 3 modules = shotgun surgery. Exclure lockfiles et généré.
 - **Instabilité × churn** : croiser le fan-in du graphe d'imports avec le churn git — les modules hauts sur les deux axes sont les candidats prioritaires.
 - **Ratio pass-through** : exports qui ne font que re-exporter/déléguer sans rien ajouter, détectable au `rg`.
+- **Landmarks architecturaux** : fichiers ou symboles de composition (`main`, `app`, `server`, `worker`, `bootstrap`, `init`, `start`, `build`, `new`, `factory`, `router`, `pipeline`, façade publique structurante). Signal seulement si le landmark assemble plusieurs dépendances/sous-systèmes ou fixe une politique de lifecycle ; ignorer les helpers triviaux et simples barrels/réexports.
+
+### Composition roots et niveau d'abstraction
+
+Une composition root est un point qui assemble des dépendances concrètes et fixe une politique de lifecycle. Elle peut être globale (`main`, serveur, CLI) ou locale à un sous-système (runtime engine, web state, worker, router, pipeline, client externe). La lentille est **récursive mais bornée** : chaque boundary importante mérite une composition lisible ; les opérations atomiques n'ont pas besoin de devenir des mini-entrypoints.
+
+Chercher le principe de **niveau d'abstraction uniforme** : une fonction de composition devrait lire comme une suite d'étapes nommées au même niveau ("charger config → créer runtime → démarrer engine → servir web"), pas alterner cette histoire avec des détails de locks, channels, maps, parsers, adapters ou champs internes.
+
+Produire un finding seulement si la friction est observable : séquence de boot/traitement difficile à scanner, parent obligé de connaître les champs internes d'un sous-système, changement local qui impose d'éditer l'entrypoint parent, wiring similaire recopié entre plusieurs roots, ou politique globale noyée dans du détail accidentel.
+
+Reco attendue : déplacer le détail vers un constructeur/factory nommé et possédé par le sous-système (`Runtime::new`, `WebState::from_config`, `build_router`, `start_worker`, etc. selon le langage), tout en gardant visibles dans le parent les politiques globales (ordre de boot, fallback non fatal, shutdown, choix de mode). Une extraction à usage unique est acceptable si elle nomme un concept réel ou baisse une densité qui gêne la lecture. **Ne pas recommander** de wrappers pass-through ni de noms vagues qui déplacent seulement le problème ou cachent les décisions importantes.
 
 **Périmètre exclu** : conformité à un style d'architecture nommé en tant que telle ; choix de stack/framework ; architecture d'infra/déploiement ; god files (→ `SIZ`) ; transgressions de frontières déclarées (→ `BND`) ; cf. *Frontières entre dimensions voisines*.
 
-**En zonal vs crosscut** : la cohésion (feature envy, sur-fragmentation, abstraction locale) se juge en audit zonal — avec la frontière d'imports de la zone (cf. `references/mode-audit.md > E`) ; le couplage profond (cycles, co-change, instabilité × churn) relève du crosscut `ARC`.
+**En zonal vs crosscut** : la cohésion (feature envy, sur-fragmentation, abstraction locale, composition roots opaques) se juge en audit zonal — avec la frontière d'imports de la zone (cf. `references/mode-audit.md > E`) ; le couplage profond (cycles, co-change, instabilité × churn) relève du crosscut `ARC`.
 
 **Abstention sur méconnaissance** : même clause qu'`IDM`.
 
@@ -120,7 +133,7 @@ Pas de table par langage dans le skill (elle vieillirait mal) : l'agent s'appuie
 - **Structure inversée** : early returns / guard clauses absents. Heuristique de signature : **le cas nominal doit être le chemin le moins indenté** — une fonction dont le return nominal est au niveau d'indentation le plus profond est candidate.
 - Chaînes if/else qui seraient un pattern matching / switch exhaustif **plat** dans le langage.
 - Conditions à inverser pour dégager le flux principal.
-- **Fragmentation excessive intra-fichier** : cascade de helpers à usage unique qui forcent le lecteur à sauter — extraire un helper seulement quand il **nomme un concept**, pas pour réduire mécaniquement la longueur d'une fonction (la version inter-unités est `ARC` sur-fragmentation).
+- **Fragmentation excessive intra-fichier** : cascade de helpers à usage unique qui forcent le lecteur à sauter — extraire un helper quand il **nomme un concept** ou réduit une densité qui gêne la lecture ; éviter les wrappers triviaux ou noms vagues qui ne font que déplacer le code (la version inter-unités est `ARC` sur-fragmentation).
 
 **Anti-seuil explicite** : pas de « max N niveaux d'imbrication », pas de complexité cyclomatique-as-finding. Un nesting de 4 qui reflète l'arbre de décision réel du domaine peut être la forme la plus claire. Les outils (`lizard`, `radon`) fournissent des candidats ; le jugement tranche — posture « l'outil propose, l'agent dispose ».
 

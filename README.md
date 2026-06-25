@@ -48,7 +48,8 @@ Audit de maintenabilité ciblé et incrémental — détecte et suit la dette de
 * suivi des findings via des IDs stables, état persistant par projet (`.claude/`)
 * historique d'audits **append-only** : pas de zone re-proposée par perte de mémoire
 * **sélection auto qui pousse vers les zones effectivement modifiées** : signal d'activité (git log croisé avec les fixes) qui priorise les zones jamais auditées et les zones « chaudes »
-* **évaluation multi-paradigme** : architecture et idiomes jugés contre le référentiel du langage *et* les conventions du codebase (haute cohésion / faible couplage, design épuré — early returns, pattern matching), jamais contre un dogme unique ni des seuils statistiques aveugles
+* **évaluation multi-paradigme** : architecture et idiomes jugés contre le référentiel du langage *et* les conventions du codebase (haute cohésion / faible couplage, composition roots lisibles, design épuré — early returns, pattern matching), jamais contre un dogme unique ni des seuils statistiques aveugles
+* **landmarks architecturaux** : les entrypoints applicatifs, roots locales de sous-systèmes, façades publiques structurantes et builders/factories structurants peuvent être audités même s'ils sont petits, avec garde-fous anti-wrappers triviaux
 * **sweeps cross-zone** sur une dimension transverse (`DUP`/`INC`/`DRF`/`DED`/`BND`/`ARC`) avec rolling crosscut indépendant (`Nx = 6`)
 * **outillage déterministe opportuniste** : utilise `scc`/`tokei`, `jscpd`, `knip`/`vulture`/`cargo-udeps`, `lizard`/`radon`, `madge`… s'ils sont présents, dégradation gracieuse vers la lecture sinon
 * re-vérification en cascade automatique après chaque fix
