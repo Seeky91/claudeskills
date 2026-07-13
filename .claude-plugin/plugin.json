@@ -1,13 +1,13 @@
 {
-  "name": "claudeskills",
+  "name": "thoth",
   "version": "0.1.0",
   "description": "Cross-agent workflows for code maintainability audits and aggressive documentation cleanup.",
   "author": {
     "name": "Quentin Jean-Amans",
     "url": "https://github.com/Seeky91"
   },
-  "homepage": "https://github.com/Seeky91/claudeskills",
-  "repository": "https://github.com/Seeky91/claudeskills",
+  "homepage": "https://github.com/Seeky91/thoth",
+  "repository": "https://github.com/Seeky91/thoth",
   "license": "MIT",
   "keywords": [
     "maintainability",

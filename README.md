@@ -1,6 +1,6 @@
-# Claude Code & Codex Skills
+# Thoth
 
-Une collection de skills de qualité de code utilisables par **Claude Code** et **Codex**, avec une source canonique unique et un CLI d'installation locale basé sur `make`.
+**T**oolkit for **H**euristic **O**rchestration & **T**ask **H**andling. Une collection de skills de qualité de code utilisables par **Claude Code** et **Codex**, avec une source canonique unique et un CLI d'installation locale basé sur `make`.
 
 ## Architecture
 
@@ -95,6 +95,8 @@ Les deux agents chargent les mêmes `SKILL.md`, mais leur syntaxe explicite diff
 | Projet complet | `/doc-cleanup project` | `$doc-cleanup nettoie tout le projet` |
 
 L'invocation implicite reste possible quand la demande correspond à la description d'un skill.
+
+> **Standalone vs plugin.** Les slash commands ci-dessus (`/maintainability`, `/doc-cleanup`) sont celles de l'**installation locale** (`make install-claude`, copie dans `~/.claude/skills/<name>/`). Installé comme **plugin Claude Code** (via marketplace), le skill est préfixé du nom du plugin (`name` de `.claude-plugin/plugin.json`, ici `thoth`) : `/thoth:maintainability` et `/thoth:doc-cleanup`. Corps du skill identique de part et d'autre — seul le nom d'invocation change.
 
 ## État généré dans les projets audités
 
