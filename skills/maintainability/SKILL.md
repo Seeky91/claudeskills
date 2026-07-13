@@ -61,16 +61,9 @@ Avant tout dispatch de mode, le skill confirme que `cwd` est la racine d'un proj
 
 Ce check ne s'applique pas si l'utilisateur passe un `<path>` en argument (absolu, ou relatif résolu vs `cwd`) — dans ce cas, le path lui-même est le scope et l'état est rattaché au marqueur de root le plus proche du path.
 
-## Résolution du répertoire d'état
+## Répertoire d'état
 
-Résoudre une seule fois `<STATE_DIR>` après `<PROJECT_ROOT>` afin que Claude Code et Codex partagent le même historique :
-
-1. Si des fichiers `maintainability_*.md` existent **dans les deux répertoires**, arrêter avant toute écriture, signaler l'historique scindé et demander lequel conserver ou migrer. Ne jamais fusionner automatiquement.
-2. Sinon, si l'un des fichiers `<PROJECT_ROOT>/.code-quality/maintainability_*.md` existe, utiliser `<PROJECT_ROOT>/.code-quality`.
-3. Sinon, si l'un des fichiers legacy `<PROJECT_ROOT>/.claude/maintainability_*.md` existe, utiliser `<PROJECT_ROOT>/.claude` pour toute l'invocation et annoncer : *"État legacy `.claude/` conservé pour éviter de scinder l'historique."*
-4. Sinon, utiliser `<PROJECT_ROOT>/.code-quality`; le créer uniquement lorsqu'un mode doit écrire.
-
-Ne jamais lire dans un répertoire puis écrire dans l'autre pendant la même invocation. Le mode `list` ne crée aucun répertoire.
+`<STATE_DIR>` = `<PROJECT_ROOT>/.code-quality`, partagé entre Claude Code et Codex. Le créer uniquement lorsqu'un mode doit écrire — le mode `list` ne crée aucun répertoire.
 
 Dans toutes les références de ce skill, un nom de fichier d'état non qualifié tel que `maintainability_findings.md` désigne toujours `<STATE_DIR>/maintainability_findings.md`.
 

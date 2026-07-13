@@ -98,7 +98,7 @@ L'invocation implicite reste possible quand la demande correspond à la descript
 
 ## État généré dans les projets audités
 
-Les nouvelles exécutions partagent un répertoire neutre entre agents :
+Les exécutions partagent un répertoire neutre entre agents :
 
 ```text
 .code-quality/
@@ -107,8 +107,6 @@ Les nouvelles exécutions partagent un répertoire neutre entre agents :
 ├── maintainability_resolved_archive.md
 └── doccleanup_coverage.md
 ```
-
-Compatibilité ascendante : si un projet possède déjà les fichiers historiques sous `.claude/`, le skill continue à utiliser ce répertoire pour l'invocation afin de ne pas scinder l'historique. Si les deux emplacements contiennent déjà un état, le skill s'arrête et demande lequel conserver plutôt que de fusionner arbitrairement. Il ne migre ni ne duplique silencieusement l'état.
 
 ## Skills disponibles
 

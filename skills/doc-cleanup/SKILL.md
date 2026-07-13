@@ -58,16 +58,9 @@ Avant tout dispatch, confirmer que `cwd` est la racine d'un projet :
 
 Si l'utilisateur passe un `<path>` (mode zone forcée), le path est le scope et l'état est rattaché au marqueur de root le plus proche.
 
-## Résolution du répertoire d'état
+## Répertoire d'état
 
-Résoudre une seule fois `<STATE_DIR>` après `<PROJECT_ROOT>` afin que Claude Code et Codex partagent le même historique :
-
-1. Si `doccleanup_coverage.md` existe **dans les deux répertoires**, arrêter avant toute écriture, signaler l'historique scindé et demander lequel conserver ou migrer. Ne jamais fusionner automatiquement.
-2. Sinon, si `<PROJECT_ROOT>/.code-quality/doccleanup_coverage.md` existe, utiliser `<PROJECT_ROOT>/.code-quality`.
-3. Sinon, si le legacy `<PROJECT_ROOT>/.claude/doccleanup_coverage.md` existe, utiliser `<PROJECT_ROOT>/.claude` pour toute l'invocation et annoncer : *"État legacy `.claude/` conservé pour éviter de scinder l'historique."*
-4. Sinon, utiliser `<PROJECT_ROOT>/.code-quality`; le créer uniquement lorsqu'un mode doit écrire.
-
-Ne jamais lire dans un répertoire puis écrire dans l'autre pendant la même invocation.
+`<STATE_DIR>` = `<PROJECT_ROOT>/.code-quality`, partagé entre Claude Code et Codex. Le créer uniquement lorsqu'un mode doit écrire.
 
 Dans toutes les références de ce skill, un nom de fichier d'état non qualifié tel que `doccleanup_coverage.md` désigne toujours `<STATE_DIR>/doccleanup_coverage.md`.
 
