@@ -32,7 +32,7 @@ Pour la dimension validée, scanner **tout le projet** (mêmes exclusions que l'
 
 **Scalabilité (le crosscut n'a pas le garde-fou des 5000 LoC de l'audit zonal — `references/mode-audit.md > D.3` — par construction).** Un scan whole-project par lecture intégrale ne passe pas à l'échelle sur un gros repo, surtout `DUP`/`DED` qui comparent toutes les zones entre elles. Donc :
 - **Privilégier l'outil** quand il est présent (cf. `references/dimensions.md > Outils de détection opportunistes` — `jscpd` repo-wide pour `DUP`, `knip`/`deadcode`/`cargo-udeps` pour `DED` global, etc.), puis trier les candidats au jugement. C'est le chemin nominal sur un projet de taille réelle.
-- **Sinon, fallback borné** : échantillonner les zones les plus pertinentes via la carte d'inventaire (mêmes top-N que le garde-fou de coût du *Signal d'activité*) plutôt que de prétendre tout lire, et **annoncer la couverture partielle** en chat (« couverture : N zones sur M scannées — outil X absent »). Ne jamais laisser croire à une exhaustivité non tenue.
+- **Sinon, fallback borné** : échantillonner les zones les plus pertinentes via la carte d'inventaire (mêmes top-N que le garde-fou de coût du *Signal d'activité*) plutôt que de prétendre tout lire, et **annoncer la couverture partielle** en chat (« couverture : N zones sur M scannées — outil X absent »). Ne jamais laisser croire à une exhaustivité non tenue — et **persister cette restriction** : la ligne history est suffixée de `[partiel : N/M zones]` (cf. `references/file-formats.md > Lignes crosscut`). Sans cette annotation, un sweep partiel entrerait dans le rolling comme un sweep complet et la restriction se perdrait à la fin du chat.
 
 Intent par dimension (jugement, pas algorithme prescriptif) :
 
@@ -57,11 +57,12 @@ Intent par dimension (jugement, pas algorithme prescriptif) :
    ```
    - YYYY-MM-DD — crosscut:<DIM> — N findings (X HIGH, Y MED, Z LOW) (pending)
    ```
+   Sweep partiel (fallback échantillonné) : suffixer `[partiel : N/M zones]`.
 3. **Pas de trim** — append-only, comme les audits zonaux.
 
 ### Cas dimension propre (0 findings)
 
-- Ligne history : `- YYYY-MM-DD — crosscut:<DIM> — 0 findings (clean)`.
+- Ligne history : `- YYYY-MM-DD — crosscut:<DIM> — 0 findings (clean)` — suffixée `[partiel : N/M zones]` si le sweep était échantillonné (un « clean » partiel n'est pas un clean complet).
 - Aucun append dans le findings file.
 - Sortie chat : template `crosscut:clean`.
 
@@ -83,6 +84,6 @@ Avant de rendre la main, valider (une case **non applicable** est considérée c
 - Dimension validée par l'utilisateur (template `crosscut:dim-proposition`) avant l'exécution.
 - Findings appendés dans `## Pending` de `maintainability_findings.md` — un par finding produit (ou aucun si dimension propre). Findings multi-fichiers respectent la convention `<localisation>` du titre = primaire + bullet `Localisation` énumérant tous les fichiers.
 - Header `<!-- id_counters: ... -->` incrémenté pour chaque préfixe utilisé (mêmes compteurs que les audits zonaux, pas de fork).
-- Ligne préfixée en tête de `maintainability_history.md` au format `- YYYY-MM-DD — crosscut:<DIM> — ...`. **Pas de trim** — history est append-only.
+- Ligne préfixée en tête de `maintainability_history.md` au format `- YYYY-MM-DD — crosscut:<DIM> — ...`, suffixée `[partiel : N/M zones]` si le sweep était échantillonné. **Pas de trim** — history est append-only.
 - Si bootstrap a eu lieu : fichiers `<STATE_DIR>/maintainability_*.md` créés avec le contenu initial.
 - Si proposition post-crosscut choisie : invariants des modes correspondants (`references/mode-double-check.md` pour single, *Résolution intra-session* de `references/mode-update.md` pour fix) applicables.

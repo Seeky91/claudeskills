@@ -65,11 +65,17 @@ install-claude: check-skill
 		echo "Claude installé : $$s"; \
 	done
 
+# Codex : le validateur skill-creator n'accepte que name, description, allowed-tools,
+# license, metadata dans le frontmatter. La clé Claude-only `argument-hint` (aide
+# d'autocomplétion) est donc strippée de la copie installée — le runtime Codex tolère
+# la clé, mais l'installation reste conforme à leur validateur.
 install-codex: check-skill
 	@mkdir -p "$(CODEX_SKILLS_DEST)"
 	@for s in $(SKILLS); do \
 		rsync -a --delete "$(SKILLS_SRC)/$$s/" "$(CODEX_SKILLS_DEST)/$$s/"; \
-		echo "Codex installé : $$s"; \
+		file="$(CODEX_SKILLS_DEST)/$$s/SKILL.md"; \
+		grep -v '^argument-hint:' "$$file" > "$$file.tmp" && mv "$$file.tmp" "$$file"; \
+		echo "Codex installé : $$s (frontmatter sans argument-hint)"; \
 	done
 
 diff: diff-$(AGENT)
@@ -88,9 +94,11 @@ diff-claude: check-skill
 
 diff-codex: check-skill
 	@for s in $(SKILLS); do \
-		echo "=== $$s : skill (repo → ~/.agents) ==="; \
+		echo "=== $$s : skill (repo → ~/.agents, argument-hint strippé à l'install) ==="; \
 		if [ -d "$(CODEX_SKILLS_DEST)/$$s" ]; then \
-			diff -ru "$(SKILLS_SRC)/$$s" "$(CODEX_SKILLS_DEST)/$$s" || true; \
+			diff -ru -x SKILL.md "$(SKILLS_SRC)/$$s" "$(CODEX_SKILLS_DEST)/$$s" || true; \
+			grep -v '^argument-hint:' "$(SKILLS_SRC)/$$s/SKILL.md" \
+				| diff -u - "$(CODEX_SKILLS_DEST)/$$s/SKILL.md" || true; \
 		else \
 			echo "  non installé — lance 'make install-codex SKILL=$$s'."; \
 		fi; \
@@ -134,6 +142,11 @@ uninstall-codex: check-skill
 		echo "Annulé."; \
 	fi
 
+# Clés de frontmatter autorisées dans la source canonique : intersection Claude/Codex
+# plus `argument-hint` (Claude-only, strippée par install-codex — cf. commentaire de
+# la target). Toute autre clé casserait l'un des deux écosystèmes.
+FRONTMATTER_KEYS := name description argument-hint allowed-tools license metadata
+
 validate: check-skill
 	@for s in $(ALL_SKILLS); do \
 		file="$(SKILLS_SRC)/$$s/SKILL.md"; \
@@ -141,9 +154,17 @@ validate: check-skill
 		test "$$(sed -n '1p' "$$file")" = "---" || { echo "Frontmatter invalide : $$s"; exit 1; }; \
 		grep -Fqx "name: $$s" "$$file" || { echo "Nom invalide : $$s"; exit 1; }; \
 		grep -Eq '^description: .+' "$$file" || { echo "Description manquante : $$s"; exit 1; }; \
+		for k in $$(awk '/^---$$/{n++; next} n==1 && /^[A-Za-z][A-Za-z-]*:/{sub(/:.*/,""); print}' "$$file"); do \
+			case " $(FRONTMATTER_KEYS) " in \
+				*" $$k "*) ;; \
+				*) echo "Clé frontmatter non portable dans $$s/SKILL.md : $$k (autorisées : $(FRONTMATTER_KEYS))"; exit 1 ;; \
+			esac; \
+		done; \
 		test -f "$(SKILLS_SRC)/$$s/agents/openai.yaml" || { echo "agents/openai.yaml manquant : $$s"; exit 1; }; \
-		for ref in $$(grep -Eo 'references/[a-z0-9-]+\.md' "$$file" | sort -u); do \
-			test -f "$(SKILLS_SRC)/$$s/$$ref" || { echo "Référence manquante : $$s/$$ref"; exit 1; }; \
+		for src in "$$file" $$(ls "$(SKILLS_SRC)/$$s/references/"*.md 2>/dev/null); do \
+			for ref in $$(grep -Eo 'references/[a-z0-9-]+\.md' "$$src" | sort -u); do \
+				test -f "$(SKILLS_SRC)/$$s/$$ref" || { echo "Référence manquante : $$s/$$ref (citée par $$src)"; exit 1; }; \
+			done; \
 		done; \
 		for agent_dir in .claude .agents; do \
 			link="$$agent_dir/skills/$$s"; \
@@ -160,5 +181,10 @@ validate: check-skill
 			$(addsuffix /agents/openai.yaml,$(addprefix $(SKILLS_SRC)/,$(ALL_SKILLS))); \
 	else \
 		echo "Ruby absent : parsing YAML complet ignoré (contrôles structurels effectués)."; \
+	fi
+	@if command -v claude >/dev/null 2>&1; then \
+		claude plugin validate . >/dev/null && echo "claude plugin validate : OK"; \
+	else \
+		echo "claude CLI absent : 'claude plugin validate .' ignoré."; \
 	fi
 	@echo "Validation locale OK : $(words $(ALL_SKILLS)) skills, vues Claude/Codex et manifests JSON."

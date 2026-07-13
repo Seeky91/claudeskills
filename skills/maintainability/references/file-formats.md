@@ -63,7 +63,10 @@ Le mode crosscut (cf. `references/mode-crosscut.md`) écrit ses propres lignes h
 ```
 - 2026-05-11 — crosscut:DUP — 4 findings (1 HIGH, 3 MED) (pending)
 - 2026-03-08 — crosscut:BND — 0 findings (clean)
+- 2026-02-19 — crosscut:DED — 2 findings (2 MED) (pending) [partiel : 8/23 zones]
 ```
+
+**Annotation de couverture partielle** : quand le sweep n'a couvert qu'un échantillon de zones (fallback sans outil, cf. `references/mode-crosscut.md > C`), suffixer la ligne de `[partiel : N/M zones]`. L'annotation ne change ni l'extraction de `<DIM>` ni le rolling crosscut (la ligne y compte normalement — pas de re-proposition immédiate de la même dimension) ; elle mémorise qu'un `0 findings (clean)` échantillonné n'est pas un clean complet et qu'un sweep outillé reste pertinent sur cette dimension.
 
 Ces lignes sont **filtrées différemment** selon l'usage :
 
@@ -113,7 +116,7 @@ Source de vérité des findings. Deux sections (`## Pending`, `## Resolved`) plu
 - En-tête entrée : `### <ID> — <SÉVÉRITÉ> — <localisation>` (avec `(résolu YYYY-MM-DD)` ajouté pour les Resolved).
 - `<localisation>` = `path:line` ou `path:start-end` ou juste `path` (pour les god files).
 - **Findings multi-fichiers** (typiquement issus du mode crosscut, `references/mode-crosscut.md`, mais possibles aussi en audit zonal si l'observation pointe naturellement vers plusieurs lieux) : `<localisation>` du titre = fichier *primaire* (occurrence majoritaire, ou premier alphabétiquement à égalité) ; la bullet `Localisation` énumère tous les fichiers/lignes impliqués (le champ accepte plusieurs lignes ou une énumération `path1:line, path2:line, …`).
-- **Pending** — bullets dans cet ordre : Dimension, Observation, Reco, Δ LoC, Détecté, Status, puis sections optionnelles (Double-check). Valeurs de `Status` :
+- **Pending** — bullets dans cet ordre : Dimension, Localisation (multi-fichiers uniquement), Observation, Reco, Δ LoC, Détecté, Status, puis sections optionnelles (Double-check — toujours **après** `Status`). Valeurs de `Status` :
   - `pending` (initial),
   - `stale (YYYY-MM-DD) — <raison>` (posé par `update` quand le fichier est introuvable **et** l'investigation self-heal est inconclusive ; cf. `references/mode-update.md > étape 2.b`),
   - `stale-after-<ID> (YYYY-MM-DD) — <raison>` (posé par la cascade quand le fix de `<ID>` invalide la localisation ; peut être résolu ou relocalisé au prochain `update` par self-heal).
@@ -133,7 +136,7 @@ Source de vérité des findings. Deux sections (`## Pending`, `## Resolved`) plu
 - **Audit origin :** 2026-05-05 (crates/bot/src/web.rs)
 ```
 
-`Resolution` doit contenir : description courte du fix + `Δ LoC mesuré : <valeur>` + `Commit : <hash>` (ou `Commits : <h1>+<h2>`). `Audit origin` reprend la date et la zone de l'audit qui a produit le finding.
+`Resolution` doit contenir : description courte du fix + `Δ LoC mesuré : <valeur>` + `Commit : <hash>` (ou `Commits : <h1>+<h2>`). **Fix non commité au moment de la résolution** (cas normal : le skill ne commit jamais lui-même, cf. SKILL.md > Conventions transverses) : écrire `Commit : non commité` — jamais un hash inventé ; un `update` ultérieur peut compléter le hash s'il devient identifiable (cf. `references/mode-update.md > étape 6`). `Audit origin` reprend la date et la zone de l'audit qui a produit le finding.
 
 **Cas NO-GO archivé** (cf. `references/mode-audit.md > H. Proposition de double-check autonome`) : `Resolution` cite la raison du NO-GO en 1-2 phrases ; `Δ LoC : N/A (NO-GO)` remplace le Δ mesuré.
 
@@ -148,10 +151,8 @@ Cold storage pour les entrées de `## Resolved` qui débordent du cap. **Jamais 
 
 ### DUP-001 — MED — services/auth/login.py:23 (résolu 2026-04-16)
 - **Dimension :** duplication de code
-- **Observation :** Validation token dupliquée avec `services/auth/refresh.py:18`.
-- **Reco :** Helper `_validate_token()`.
-- **Δ LoC :** ~-25 (estimation initiale).
-- **Resolution :** Extrait vers `services/auth/_helpers.py`. Δ LoC mesuré : -32.
+- **Resolution :** Extrait vers `services/auth/_helpers.py`. Δ LoC mesuré : -32. Commit : a7b3d12.
+- **Audit origin :** 2026-04-15 (services/auth/)
 
 ### CPX-002 — HIGH — core/api_handler.py:88 (résolu 2026-04-22)
 - ...
@@ -160,7 +161,7 @@ Cold storage pour les entrées de `## Resolved` qui débordent du cap. **Jamais 
 ### Règles de format
 
 - Pas de section `## Pending` / `## Resolved` (le fichier entier est l'équivalent d'un `## Resolved` géant).
-- Entrées au format strict identique à celles de `## Resolved` du fichier findings (titre + bullets, déplacées intactes — pas de compaction).
+- Entrées au format strict identique à celles de `## Resolved` du fichier findings (titre + 3 bullets compactes, déplacées intactes — la compaction a déjà eu lieu au move vers `## Resolved`). Des entrées **verbose héritées** (archivées avant l'introduction du format compact) peuvent subsister — valides, pas de réécriture rétroactive.
 - Append-only en fin de fichier (l'ordre = ordre chronologique des résolutions, du plus ancien au plus récent).
 - Les IDs des entrées archivées restent référencés dans `maintainability_history.md` (lignes `(résolus DUP-001+...)`) — pas de mise à jour à faire dans history lors de l'archivage.
 - Lecture explicite uniquement par l'utilisateur (`grep`, ouverture éditeur, ou demande conversationnelle "regarde l'archive et …"). Pas de mode dédié dans le skill.

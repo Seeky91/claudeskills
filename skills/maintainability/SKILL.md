@@ -1,14 +1,14 @@
 ---
 name: maintainability
 argument-hint: "[<path> | list | update | double-check <ID> | crosscut | archive-clear]"
-description: "Audit and track code maintainability: duplication, dead code, complexity, oversized files, inconsistent patterns, coupling, cohesion, boundary violations, architecture drift, test redundancy, config sprawl, and unnecessary comments. Use for code-health or architecture reviews, French « audit de maintenabilité » or « dette technique », zonal or cross-project sweeps, listing or refreshing findings, deep-checking an ID, and archive cleanup. Excludes security, performance, accessibility, and stack selection."
+description: "Audit and track code maintainability: duplication, dead code, complexity, oversized files, inconsistent patterns, coupling, cohesion, boundary violations, architecture drift, test redundancy, config sprawl, and stale or unnecessary comments (tracked as findings — use doc-cleanup for a dedicated comment-removal pass). Use for code-health or architecture reviews, French « audit de maintenabilité » or « dette technique », zonal or cross-project sweeps, listing or refreshing findings, deep-checking an ID, and archive cleanup. Excludes security, performance, accessibility, and stack selection."
 ---
 
 # Maintainability skill
 
 ## Frontière
 
-Diagnostiquer et suivre la maintenabilité sans modifier le code audité pendant l'audit. Ne pas utiliser pour la sécurité, la performance, l'accessibilité ou le choix de stack.
+Diagnostiquer et suivre la maintenabilité sans modifier le code audité pendant l'audit. **Le skill audite et suit d'abord** (findings persistants à IDs stables) ; il ne modifie le code qu'ensuite, sur résolution explicite après ta confirmation (`update`, `fix B<n>`) — ce n'est pas un refactoring one-shot. Ne pas utiliser pour la sécurité, la performance, l'accessibilité ou le choix de stack.
 
 ## Références
 
@@ -69,11 +69,13 @@ Dans toutes les références de ce skill, un nom de fichier d'état non qualifi�
 
 ## Conventions transverses (tout mode qui écrit l'état)
 
-Deux règles s'appliquent à **chaque** écriture des fichiers d'état, quel que soit le mode. Elles ne sont pas répétées dans chaque playbook — elles sont supposées partout.
+Trois règles s'appliquent à **chaque** écriture des fichiers d'état, quel que soit le mode. Elles ne sont pas répétées dans chaque playbook — elles sont supposées partout.
 
 1. **Date courante déterministe.** Toute date `YYYY-MM-DD` écrite dans l'état (ligne history, `Détecté:`, `(résolu …)`, section `Double-check (…)`, `Status: stale (…)`) ou comparée à une date stockée (seuil « > 6 mois » d'`archive-clear`) doit être obtenue via `date +%F`, **jamais supposée de mémoire**. Cohérent avec l'usage déjà fait de `git log`/`git diff` pour les autres datations. Si l'environnement ne permet pas d'exécuter `date` : le signaler en chat plutôt que d'inventer une date.
 
 2. **Écritures en delta, jamais de régénération.** Les modes lisent l'état tôt et écrivent tard. Avant d'écrire `maintainability_findings.md` ou `maintainability_history.md`, **relire le fichier juste avant l'écriture**, puis **insérer / déplacer uniquement le(s) bloc(s) ciblé(s)** (le nouveau finding, la ligne history préfixée, le move Pending → Resolved). Ne **jamais** régénérer le fichier entier de mémoire : cela peut perdre des entrées existantes et écraser une édition manuelle faite entre-temps (le skill assume explicitement l'édition humaine de ces fichiers, cf. `references/file-formats.md`). L'écriture en delta réduit aussi la surface d'erreur sur les gros fichiers.
+
+3. **Git : l'arbre de travail se modifie, l'historique jamais.** Les flux de fix (résolution intra-session, `fix B<n>`, quick-wins post double-check) éditent librement les fichiers du projet, mais ne font **jamais** de `git add`/`commit`/`push` — le commit appartient à l'utilisateur (`git log`/`diff`/`show`/`blame` restent libres). Conséquence assumée : au moment où une résolution s'écrit, le fix est **normalement non commité** — la bullet `Resolution` porte alors `Commit : non commité` (cf. `references/file-formats.md`), complétable plus tard par `update`. La cascade post-fix ne dépend pas non plus d'un commit (cf. `references/cascade.md`).
 
 ## Doctrine d'évaluation
 
@@ -102,6 +104,9 @@ Les sorties chat des modes suivent des templates normatifs définis dans `refere
 | `audit:clean` | Audit qui produit 0 finding (zone propre). |
 | `audit:proposition` | Proposition de double-check autonome post-audit (3 options a/b/c). |
 | `audit:proposition-min` | Variante post-audit pour 1 ou 2 findings. |
+| `crosscut:dim-proposition` | Annonce de la dimension candidate en mode crosscut. |
+| `crosscut:summary` | Crosscut qui produit ≥ 1 finding. |
+| `crosscut:clean` | Crosscut qui produit 0 finding (dimension propre). |
 | `list:dashboard` | Tableau de bord en mode list. |
 | `update:summary` | Récap en mode update. |
 | `double-check:output` | Sortie standard d'un double-check. |

@@ -7,8 +7,8 @@ Référence chargée par SKILL.md en mode **list**. **Pas d'audit, pas de re-vé
 1. Lire `maintainability_findings.md` et `maintainability_history.md`.
 2. Compter les pending par sévérité. Lister les IDs avec un one-liner descriptif (extrait de l'observation, ~50 chars).
 3. **Compter et lister à part les findings stale** (pending dont la bullet `Status` est `stale ...` ou `stale-after-<ID> ...`) — distincts des actifs car ils nécessitent une action utilisateur (relocaliser, marquer résolu, ou archiver) avant de pouvoir être traités. Ils restent inclus dans le total Pending.
-4. Lister les résolus des 30 derniers jours (filtrer par la date dans le titre Resolved).
-5. Lister les entrées du rolling actif zonal (les `N` premières lignes **non `crosscut:*`** de history, cf. `references/file-formats.md > Lignes crosscut`).
+4. Lister les résolus des 30 derniers jours (filtrer par la date dans le titre Resolved). **Périmètre assumé : la seule section `## Resolved`** (cap 8) — l'archive n'est pas relue (design, cf. `references/file-formats.md`). Si les 8 entrées de la section tombent toutes dans la fenêtre, la liste est probablement tronquée : le signaler (cf. template).
+5. Lister les entrées du rolling actif zonal (les `N` premières lignes **non `crosscut:*`** de history, cf. `references/file-formats.md > Lignes crosscut`). `N` en mode list : la valeur de l'override `<!-- rolling_size: M -->` s'il existe, sinon **5 par défaut d'affichage** — le `N` exact dépend de la taille de l'inventaire, que le mode list (read-only) ne recalcule pas.
 6. **Rolling crosscut** : lister les `Nx` lignes `crosscut:*` les plus récentes de history (`Nx = 6` par défaut, override `<!-- crosscut_rolling_size: M -->`). Même format de ligne que le rolling zonal : `<date> — crosscut:<DIM> — <N findings (status)>`. Omettre la section si aucune ligne crosscut.
 7. Détecter les batches groupables parmi les pending **actifs uniquement** (les stale sont exclus du batching, cf. *Batches suggérés*).
 

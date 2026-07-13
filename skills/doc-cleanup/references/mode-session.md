@@ -20,7 +20,7 @@ Signal déterministe = les fichiers **changés vs `HEAD`** dans la session (non 
 ## B. Scope : fichier entier vs hunks
 
 - **Défaut (sans flag)** : nettoyer le **fichier entier** de chaque fichier touché. Justification : un commentaire inutile 5 lignes au-dessus d'une ligne modifiée reste inutile, et un rename est non-local par nature. Le fichier touché est la *sélection* ; le fichier entier est l'*unité de travail*.
-- **`--touched`** : restreindre aux **hunks modifiés**, récupérés via `git diff HEAD` (inclut staged **et** non-staged ; **pas** `git diff` seul qui rate les hunks staged). Opt-in étroit. **Avertir** que ce scope est partiel : un rename dont des références sortent des hunks doit quand même propager dans tout le projet (la doctrine de rename prime sur la restriction de scope), et du bruit hors-hunk sera laissé.
+- **`--touched`** : restreindre aux **hunks modifiés**, récupérés via `git diff HEAD` (inclut staged **et** non-staged ; **pas** `git diff` seul qui rate les hunks staged). Opt-in étroit. **Fichiers non suivis (untracked)** : `git diff HEAD` ne produit **aucun hunk** pour eux (pas de version de base à differ) — il n'y a rien à restreindre, donc un fichier untracked est traité **en entier** même sous `--touched`, en l'annonçant dans la sortie (le flag ne l'a pas borné, c'est attendu : un fichier neuf est intégralement « touché »). **Avertir** que ce scope est partiel : un rename dont des références sortent des hunks doit quand même propager dans tout le projet (la doctrine de rename prime sur la restriction de scope), et du bruit hors-hunk sera laissé.
 
 ## C. Exécution
 

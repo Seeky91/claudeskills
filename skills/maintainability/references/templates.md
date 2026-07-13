@@ -101,6 +101,8 @@ Pour creuser un item à la main : invoquer `maintainability` en mode double-chec
 
 `<K> fichiers` = nombre d'emplacements distincts listés dans la `Localisation` du finding (1 pour un finding mono-fichier comme `DED` global, ≥2 pour `DUP`/`INC`/`DRF`/`BND`).
 
+Sweep partiel (fallback sans outil) : insérer `Couverture : N/M zones scannées — outil <X> absent` juste avant le trailer `Files mis à jour`, et la ligne history citée porte le suffixe `[partiel : N/M zones]`.
+
 Suivi du bloc `audit:proposition` ou `audit:proposition-min` selon le nombre de findings (les templates de proposition d'action sont génériques sur la nature de l'audit — pas de version dédiée crosscut).
 
 ## `crosscut:clean` — Crosscut sans finding
@@ -110,6 +112,8 @@ Crosscut <DIM> terminé. Aucun finding cross-zone produit sur cette dimension.
 
 Files mis à jour : <STATE_DIR>/maintainability_history.md (+1 ligne `crosscut:<DIM> — 0 findings (clean)`).
 ```
+
+Sweep partiel : remplacer la première ligne par `Crosscut <DIM> terminé — couverture : N/M zones scannées (outil <X> absent). Aucun finding sur l'échantillon.` et la ligne history citée porte le suffixe `[partiel : N/M zones]`.
 
 Pas de bloc de proposition derrière (rien à proposer).
 
@@ -152,7 +156,7 @@ Sinon : `fix B<reco>` direct, un autre batch (`double-check B<n>` / `fix B<n>`),
 
 Omissions :
 - Section Stale : omise si zéro.
-- Section Recently resolved : afficher *"Aucun résolu dans les 30 derniers jours."* si zéro.
+- Section Recently resolved : afficher *"Aucun résolu dans les 30 derniers jours."* si zéro. Si les 8 entrées du cap Resolved tombent toutes dans la fenêtre : suffixer le titre de section `(fenêtre possiblement tronquée au cap Resolved — l'archive n'est pas relue)`.
 - Section Batches : si zéro batch détecté, remplacer par *"Pas de batch évident détecté — les pendings sont indépendants."* et **omettre** le prompt d'action.
 - Si zéro pending actif : remplacer la ligne par `Pending actifs (0) : aucun finding actionnable.`.
 - Section `Rolling crosscut` : omise entièrement si aucune ligne `crosscut:*` dans l'history. Si moins de `Nx` lignes crosscut existent, lister celles disponibles (pas de padding).
@@ -292,7 +296,7 @@ Si push-back partiel à l'étape `resolution:confirm` : la ligne reflète seulem
 Cascade re-check : <N> résolu(s) collatéralement (<IDs>), <M> stale-after (<IDs>).
 ```
 
-Si overlap = 0 sur tous les fixes du batch : la ligne `Cascade re-check :` est **omise**.
+Si overlap = 0 sur tous les fixes du batch : la ligne `Cascade re-check :` est **omise**. Fixes non commités (cas normal) : `commits : non commités (diff dans l'arbre de travail)` remplace la liste de hashes.
 
 ## `archive-clear:confirm-all` — Confirmation purge totale
 

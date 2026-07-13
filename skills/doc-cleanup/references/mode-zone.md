@@ -28,7 +28,7 @@ Si `<STATE_DIR>/doccleanup_coverage.md` est absent : le créer avec `# Doc-clean
 
 ## D. Validation
 
-Pour toute grosse zone, déléguée ou non, **vérifier l'intégrité du résumé** avant de valider (cf. `references/orchestration.md > Vérification d'intégrité`). Puis lancer la validation (cf. `references/orchestration.md > Validation`) **une fois la zone entièrement appliquée**. KO → reporter, ne pas marquer la zone propre, laisser l'utilisateur arbitrer.
+Pour toute grosse zone, déléguée ou non, **vérifier l'intégrité du résumé** avant de valider (cf. `references/orchestration.md > Vérification d'intégrité`). Puis lancer la validation (cf. `references/orchestration.md > Validation`) **une fois la zone entièrement appliquée**. KO → reporter et laisser l'utilisateur arbitrer ; la ligne de couverture s'écrit **quand même** avec `tests KO (<détail>)` — elle trace la passe mais ne compte pas comme couverture (la zone restera pending, cf. `references/file-formats.md`).
 
 ## E. Écriture + sortie
 

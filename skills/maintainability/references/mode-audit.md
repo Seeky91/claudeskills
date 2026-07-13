@@ -90,7 +90,7 @@ Croise les modifications réelles du code (commits utilisateur) avec l'historiqu
 
 **d. Classement** :
 - `jamais_auditee` ssi zone dans `zones_jamais_auditees`.
-- Sinon `chaude` ssi `last_touch > last_audit_zone`.
+- Sinon `chaude` ssi `last_touch > last_audit_zone`. **Comparer au jour** (`last_touch` est un timestamp complet, `last_audit_zone` une date) ; **égalité de jour → `chaude`** : impossible de savoir si le commit précède ou suit l'audit du même jour, et sur-prioriser une zone est le biais le moins coûteux (le rolling protège de toute façon les zones auditées récemment).
 - Sinon `froide`.
 
 **Coût** : un `git log` par zone candidate. Sur Z = 40 zones, ~40 appels — quelques secondes en sélection auto, négligeable face au coût de l'audit lui-même. Sur Z > 80, le coût devient sensible ; à ce stade, le signal reste utile mais le skill peut limiter à un échantillon des top 30 zones par taille LoC (les zones < 200 LoC ont déjà été regroupées en *Inventaire des zones*, donc le filtre par taille est naturel).

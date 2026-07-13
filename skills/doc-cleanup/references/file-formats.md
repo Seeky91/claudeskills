@@ -17,7 +17,7 @@ L'état est en markdown (lisible, git-diffable, éditable à la main) et **minim
 
 - 2026-06-25 — services/api/ — project — 34 supprimés, 5 renames, 2 docs dé-driftées — tests OK
 - 2026-06-25 — src/utils/format.ts — zone — 8 supprimés, 1 rename — tests OK
-- 2026-06-24 — session (7 files) — 22 supprimés, 3 renames, 1 dé-driftée — tests OK
+- 2026-06-24 — session (7 files) — session — 22 supprimés, 3 renames, 1 dé-driftée — tests OK
 - 2026-06-23 — services/billing/ — project — 0 supprimés (déjà propre) — tests OK
 ```
 
@@ -26,8 +26,8 @@ L'état est en markdown (lisible, git-diffable, éditable à la main) et **minim
 - `<mode>` ∈ `project` | `zone` | `session`.
 - `<validation>` = `tests OK` | `tests KO (<détail>)` | `validation dégradée (<ce qui a tourné>)`.
 - Stats à 0 acceptées (`0 supprimés (déjà propre)`) — c'est une couverture valide, elle mémorise que la zone a été vue.
-- **Couverture (reprise `project`)** : `zones_couvertes` = chemins des lignes `project`/`zone`. Les lignes `session` ne comptent pas comme couverture de zone (cf. `references/mode-project.md > C`).
-- **Staleness** : la date de couverture sert aussi à **revalider**. Une zone couverte dont le code a bougé depuis (activité `git log` postérieure à la date) revient en pending au prochain `project` — du bruit a pu réapparaître. Auto-correcteur : re-balayer une zone redevenue propre ré-écrit une ligne à jour (cf. `references/mode-project.md > C`). Sans cette comparaison, la couverture par chemin seul deviendrait faussement rassurante dans la durée.
+- **Couverture (reprise `project`)** : `zones_couvertes` = chemins des lignes `project`/`zone` dont la validation n'est **pas** `tests KO` — une passe en échec garde sa trace (la ligne s'écrit quand même) mais ne compte pas comme couverture : la zone revient en pending à la reprise. `validation dégradée` compte comme couverture (le nettoyage a bien eu lieu ; c'est l'environnement qui manque de tests). Les lignes `session` ne comptent pas comme couverture de zone (cf. `references/mode-project.md > C`).
+- **Staleness** : la date de couverture sert aussi à **revalider**. Une zone couverte dont le code a bougé depuis (activité `git log` de date postérieure **ou égale** à la date de couverture) revient en pending au prochain `project` — du bruit a pu réapparaître. L'égalité compte comme stale : à granularité jour, impossible de savoir si le commit précède ou suit la passe, et re-balayer une zone propre coûte moins que rater du code nouveau. Auto-correcteur : re-balayer une zone redevenue propre ré-écrit une ligne à jour (cf. `references/mode-project.md > C`). Sans cette comparaison, la couverture par chemin seul deviendrait faussement rassurante dans la durée.
 
 ## Templates de sortie chat
 

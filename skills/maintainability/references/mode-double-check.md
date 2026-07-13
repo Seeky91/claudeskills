@@ -19,7 +19,7 @@ Référence chargée par SKILL.md en mode **double-check** avec un ID, par exemp
 
 ## Écriture dans le fichier findings
 
-Ajouter une section `Double-check (YYYY-MM-DD) :` dans l'entrée existante du finding, juste après la bullet `Détecté:` ou avant la bullet `Status:`. Format : une bullet unique contenant tous les éléments de la trace (cf. exemple dans `references/file-formats.md > Pending`).
+Ajouter une section `Double-check (YYYY-MM-DD) :` dans l'entrée existante du finding, **juste après la bullet `Status:`** (dernière position, conformément à l'ordre normatif des bullets — cf. `references/file-formats.md > Règles de format` et son exemple `SIZ-003`). Format : une bullet unique contenant tous les éléments de la trace.
 
 Si la sévérité change : modifier également le titre de l'entrée (`### SIZ-003 — MED — core/api_handler.py`).
 

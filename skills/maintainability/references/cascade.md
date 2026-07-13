@@ -10,7 +10,12 @@ Référence chargée par SKILL.md quand un fix déclenche la cascade (résolutio
 
 ### Algorithme
 
-1. **Capter le diff** : `git show --name-only <hash>` où `<hash>` est le commit de la `Resolution` du finding primaire. Pour des fixes batchés (plusieurs primaires dans le même turn) : union des paths sur tous les commits associés. Si pas de commit identifiable (cas rare où le fix n'est pas committé au moment de la résolution) : sauter la cascade et noter en chat *"Cascade re-check sautée : pas de commit identifié pour `<ID>`."*
+1. **Capter les paths modifiés par le fix**, par ordre de préférence :
+   - **(a) La liste des fichiers que l'agent vient d'éditer** — le cas nominal : la cascade suit un fix intra-session, l'agent connaît exactement ce qu'il a touché.
+   - **(b) `git diff --name-only HEAD`** si la liste n'est plus fiable (fix appliqué plus tôt dans la conversation) — sur-approximation acceptable : elle peut inclure du WIP utilisateur étranger au fix, ce qui ajoute seulement quelques candidats re-checkés en lecture seule.
+   - **(c) `git show --name-only <hash>`** si le fix est déjà commité (le hash vient de la `Resolution`).
+   
+   Le fix **non commité est le cas normal** (le skill ne commit jamais lui-même, cf. SKILL.md > Conventions transverses) — il ne fait pas sauter la cascade. Pour des fixes batchés (plusieurs primaires dans le même turn) : union des paths sur tous les fixes.
 
 2. **Filtrer les candidats** parmi `## Pending`, hors les primaires déjà déplacés. Un finding est candidat ssi **au moins un** de ses paths :
    - matche exactement un path du diff, ou
@@ -23,7 +28,7 @@ Référence chargée par SKILL.md quand un fix déclenche la cascade (résolutio
 
 3. **Re-check par candidat** — réutilise la logique par-dimension du mode update (`references/mode-update.md`) : lire ~20 lignes autour de la localisation, vérifier si le pattern décrit est encore reconnaissable. Trois issues possibles :
    - **Pattern toujours présent** → laisser pending. Si la ligne a shifté significativement, mettre à jour `path:line` dans le titre. Pas d'autre écriture.
-   - **Pattern absent** (fichier toujours là, observation ne tient plus) → cascade-resolved. Move vers `## Resolved` au format compact. Bullet `Resolution :` au format : *"résolu collatéralement par fix de `<ID-primaire>` (YYYY-MM-DD). Δ LoC mesuré : intégré dans `<ID-primaire>`. Commit : `<hash-primaire>`."* — pas de fragmentation du Δ, la valeur globale reste dans la `Resolution` du primaire ; le commit est celui du primaire (le cascadé n'a pas son propre commit).
+   - **Pattern absent** (fichier toujours là, observation ne tient plus) → cascade-resolved. Move vers `## Resolved` au format compact. Bullet `Resolution :` au format : *"résolu collatéralement par fix de `<ID-primaire>` (YYYY-MM-DD). Δ LoC mesuré : intégré dans `<ID-primaire>`. Commit : `<hash-primaire>`."* — pas de fragmentation du Δ, la valeur globale reste dans la `Resolution` du primaire ; le champ `Commit` est aligné sur celui du primaire (`non commité` si le primaire ne l'est pas — le cascadé n'a jamais son propre commit).
    - **Fichier disparu / renommé** (path absent du repo après le fix) → laisser en pending et **remplacer** la bullet `Status` par `Status : stale-after-<ID-primaire> (YYYY-MM-DD) — localisation invalidée par le fix, à relocaliser ou archiver`. Pas de question synchrone.
 
 4. **Mettre à jour `maintainability_history.md`** : pour chaque cascade-resolved, retrouver la zone et la date de l'audit d'origine via la bullet `Détecté` de l'entrée Pending (lue **avant** le move qui la drop) et compléter `(résolus <IDs>+...)` sur la ligne d'audit correspondante.
