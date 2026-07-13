@@ -1,0 +1,33 @@
+{
+  "name": "claudeskills",
+  "version": "0.1.0",
+  "description": "Cross-agent workflows for code maintainability audits and aggressive documentation cleanup.",
+  "author": {
+    "name": "Quentin Jean-Amans",
+    "url": "https://github.com/Seeky91"
+  },
+  "homepage": "https://github.com/Seeky91/claudeskills",
+  "repository": "https://github.com/Seeky91/claudeskills",
+  "license": "MIT",
+  "keywords": [
+    "maintainability",
+    "code-quality",
+    "documentation"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Claude & Codex Skills",
+    "shortDescription": "Maintainability and documentation cleanup workflows",
+    "longDescription": "Audit maintainability debt, track findings over time, and remove noisy code comments with reusable workflows shared by Claude Code and Codex.",
+    "developerName": "Quentin Jean-Amans",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Audit the most relevant area for maintainability issues.",
+      "Clean redundant comments from files changed in this session."
+    ]
+  }
+}

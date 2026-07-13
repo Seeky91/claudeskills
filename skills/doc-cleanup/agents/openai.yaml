@@ -1,0 +1,4 @@
+interface:
+  display_name: "Doc Cleanup"
+  short_description: "Remove noisy code comments safely"
+  default_prompt: "Use $doc-cleanup to remove redundant comments from the files changed in this session."

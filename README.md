@@ -1,116 +1,146 @@
-# Claude Skills
+# Claude Code & Codex Skills
 
-Une collection de skills réutilisables pour Claude Code, avec un CLI d'installation (`make`) pour les synchroniser vers `~/.claude`.
+Une collection de skills de qualité de code utilisables par **Claude Code** et **Codex**, avec une source canonique unique et un CLI d'installation locale basé sur `make`.
 
-## Structure du repo
+## Architecture
 
-Chaque skill est **compartimenté** : développer sur l'un n'impacte jamais les autres.
+Le contenu métier de chaque skill vit une seule fois sous `skills/` :
 
+```text
+skills/
+├── maintainability/
+│   ├── SKILL.md
+│   ├── agents/openai.yaml
+│   └── references/
+└── doc-cleanup/
+    ├── SKILL.md
+    ├── agents/openai.yaml
+    └── references/
 ```
-.claude/
-├── skills/
-│   └── <name>/              # un dossier autonome par skill
-│       ├── SKILL.md
-│       └── references/      # fichiers chargés à la demande
-└── commands/
-    └── <name>/              # slash commands du skill <name>
-        └── *.md
+
+Les vues de projet sont des symlinks vers cette source :
+
+```text
+.claude/skills/  -> skills destinés à Claude Code
+.agents/skills/  -> skills destinés à Codex
 ```
 
-Convention : les slash commands d'un skill vivent dans `.claude/commands/<name>/` (le sous-dossier est un namespace d'organisation — le nom de la commande reste celui du fichier). C'est ce qui permet au CLI d'installer/désinstaller/differ chaque skill et ses commands indépendamment, dans le repo comme dans `~/.claude`.
+Le dépôt porte aussi les deux manifests de distribution :
 
-Le repo étant lui-même un projet Claude Code, les skills sont actifs en l'état quand on travaille dedans — c'est ici qu'on les développe, `~/.claude` n'est qu'un miroir d'installation.
+```text
+.claude-plugin/plugin.json
+.codex-plugin/plugin.json
+```
 
-## Installation (CLI)
+Il n'y a pas de fichiers de commandes séparés : chaque skill est nativement invocable en slash command (`/maintainability`, `/doc-cleanup`), les arguments étant interprétés par le dispatch du `SKILL.md`.
+
+## Installation locale
 
 Depuis la racine du dépôt :
 
 ```bash
-make list                  # skills disponibles + état (installé ou non)
-make install               # installe tous les skills vers ~/.claude
-make install SKILL=foo     # installe un seul skill
-make diff                  # diff repo ↔ ~/.claude, tous les skills
-make diff SKILL=foo        # diff pour un seul skill
-make uninstall SKILL=foo   # retire un skill de ~/.claude (confirmation)
-make uninstall             # retire tous les skills (confirmation)
+make list
+
+make install-claude
+make install-codex
+make install-all
+
+make install-claude SKILL=maintainability
+make install-codex SKILL=doc-cleanup
 ```
 
-L'installation est un miroir exact par skill (`rsync --delete` sur `~/.claude/skills/<name>/` **et** `~/.claude/commands/<name>/`) : `~/.claude` reflète toujours le repo, sans toucher aux skills ou commands d'autres provenances.
+La forme générique est également disponible :
 
----
+```bash
+make install AGENT=claude
+make install AGENT=codex
+make install AGENT=all
+```
+
+Sans `AGENT`, les aliases historiques `make install`, `make diff`, `make uninstall` et `make sync` restent ciblés sur Claude Code. Utiliser les targets `*-all` pour agir explicitement sur les deux agents.
+
+Destinations :
+
+- Claude Code : `~/.claude/skills/<name>/`.
+- Codex : `~/.agents/skills/<name>/`.
+
+Commandes associées :
+
+```bash
+make diff-claude [SKILL=<name>]
+make diff-codex  [SKILL=<name>]
+make diff-all    [SKILL=<name>]
+
+make uninstall-claude [SKILL=<name>]
+make uninstall-codex  [SKILL=<name>]
+make uninstall-all    [SKILL=<name>]
+
+make validate
+```
+
+L'installation est un miroir exact par skill avec `rsync --delete`. Elle ne touche pas aux skills portant d'autres noms.
+
+## Invocation
+
+Les deux agents chargent les mêmes `SKILL.md`, mais leur syntaxe explicite diffère :
+
+| Intention | Claude Code | Codex |
+|---|---|---|
+| Audit automatique | `/maintainability` | `$maintainability audite la zone la plus pertinente` |
+| Audit ciblé | `/maintainability src/api` | `$maintainability audite src/api` |
+| Tableau de bord | `/maintainability list` | `$maintainability affiche le tableau de bord` |
+| Re-vérification | `/maintainability update` | `$maintainability re-vérifie les pendings` |
+| Nettoyage ciblé | `/doc-cleanup src/api` | `$doc-cleanup nettoie src/api` |
+| Fichiers touchés | `/doc-cleanup session` | `$doc-cleanup nettoie les fichiers touchés` |
+| Projet complet | `/doc-cleanup project` | `$doc-cleanup nettoie tout le projet` |
+
+L'invocation implicite reste possible quand la demande correspond à la description d'un skill.
+
+## État généré dans les projets audités
+
+Les nouvelles exécutions partagent un répertoire neutre entre agents :
+
+```text
+.code-quality/
+├── maintainability_history.md
+├── maintainability_findings.md
+├── maintainability_resolved_archive.md
+└── doccleanup_coverage.md
+```
+
+Compatibilité ascendante : si un projet possède déjà les fichiers historiques sous `.claude/`, le skill continue à utiliser ce répertoire pour l'invocation afin de ne pas scinder l'historique. Si les deux emplacements contiennent déjà un état, le skill s'arrête et demande lequel conserver plutôt que de fusionner arbitrairement. Il ne migre ni ne duplique silencieusement l'état.
 
 ## Skills disponibles
 
-### 🛠 maintainability
+### `maintainability`
 
-Audit de maintenabilité ciblé et incrémental — détecte et suit la dette de maintenabilité (duplication, code mort, complexité, défauts d'architecture : couplage, cohésion, abstractions) dans le temps sans repasser toujours sur les mêmes zones.
+Audit de maintenabilité ciblé et incrémental : duplication, code mort, complexité, taille, incohérences, couplage, frontières architecturales, tests redondants, configuration dispersée et dette documentaire légère.
 
-* suivi des findings via des IDs stables, état persistant par projet (`.claude/`)
-* historique d'audits **append-only** : pas de zone re-proposée par perte de mémoire
-* **sélection auto qui pousse vers les zones effectivement modifiées** : signal d'activité (git log croisé avec les fixes) qui priorise les zones jamais auditées et les zones « chaudes »
-* **évaluation multi-paradigme** : architecture et idiomes jugés contre le référentiel du langage *et* les conventions du codebase (haute cohésion / faible couplage, composition roots lisibles, design épuré — early returns, pattern matching), jamais contre un dogme unique ni des seuils statistiques aveugles
-* **landmarks architecturaux** : les entrypoints applicatifs, roots locales de sous-systèmes, façades publiques structurantes et builders/factories structurants peuvent être audités même s'ils sont petits, avec garde-fous anti-wrappers triviaux
-* **sweeps cross-zone** sur une dimension transverse (`DUP`/`INC`/`DRF`/`DED`/`BND`/`ARC`) avec rolling crosscut indépendant (`Nx = 6`)
-* **outillage déterministe opportuniste** : utilise `scc`/`tokei`, `jscpd`, `knip`/`vulture`/`cargo-udeps`, `lizard`/`radon`, `madge`… s'ils sont présents, dégradation gracieuse vers la lecture sinon
-* re-vérification en cascade automatique après chaque fix
-* sorties chat normalisées via templates nommés
+Le skill fournit :
 
-Architecture : `SKILL.md` routeur mince + un playbook par mode dans `references/` (une invocation ne paie que le contexte de son mode).
+- des audits zonaux et cross-zone ;
+- un suivi persistant avec IDs stables ;
+- un tableau de bord et une re-vérification des pendings ;
+- des double-checks avec blast radius et verdict ;
+- une re-vérification en cascade après résolution.
 
-#### Slash commands
+### `doc-cleanup`
 
-| Commande | Rôle |
-|---|---|
-| `/maintainability [path]` | Audit d'une zone (sélection auto si pas de path) |
-| `/maintainability-crosscut` | Sweep cross-zone sur une dimension transverse (auto-proposée) |
-| `/maintainability-list` | Tableau de bord : pendings, résolus récents, rollings, batches suggérés |
-| `/maintainability-update` | Re-vérifie tous les findings pending, self-heal des stales |
-| `/maintainability-double-check <ID>` | Deep-dive d'un finding : blast radius, faisabilité, verdict GO/NO-GO |
-| `/maintainability-archive-clear [--all \| --keep N \| --older-than <durée>]` | Purge l'archive des résolus (défaut : > 6 mois), avec confirmation |
+Nettoyage agressif des commentaires et docstrings qui paraphrasent le code, avec conservation des règles métier, intentions non évidentes, contraintes de sécurité et contrats d'API publique.
 
-#### Fichiers générés dans le projet audité
+Le skill fournit :
 
-* `.claude/maintainability_history.md` — historique des audits
-* `.claude/maintainability_findings.md` — findings pending + résolus récents
-* `.claude/maintainability_resolved_archive.md` — archive des anciens résolus
+- un mode zone, projet complet ou fichiers touchés ;
+- des renames prudents pour rendre le code auto-documenté ;
+- une orchestration sérialisée, avec ou sans sous-agents ;
+- une validation par zone et une couverture persistante.
 
----
+## Ajouter un skill
 
-### 🧹 doc-cleanup
-
-Nettoyage **agressif** de la documentation de code — supprime le bruit de commentaires (la sur-documentation que pondent les agents : paraphrase du code, narration, docstrings qui répètent la signature), rend le code auto-documenté par renommage, et fiabilise le peu qui reste (corrige le drift commentaire ↔ code). C'est un **exécuteur** : le livrable est le code nettoyé dans l'arbre de travail.
-
-* **posture agressive par défaut** : charge de la preuve inversée (un commentaire est du bruit jusqu'à preuve d'utilité) — corrige le biais d'un agent qui sous-supprime spontanément
-* **heuristique de tri** : commentaire « *what* » = bruit ~90 % → supprimé ; « *why* » (métier, intention, tradeoff, sécurité, contrat d'API publique) → gardé **et** dé-drifté
-* **trois variantes** adaptées aux contraintes de contexte : campagne globale orchestrée en sous-agents sérialisés, zone unique en main-loop, ou fichiers touchés pendant la session (diff git)
-* **sécurité des renames** : grep des références dans tout le projet avant chaque rename, propagation à tous les sites, sérialisation pour éviter les courses inter-zones
-* **git en lecture seule** : édite l'arbre de travail mais ne commite jamais — la review se fait sur le diff non commité
-* **validation par zone** : lint/tests détectés et lancés après chaque zone entièrement appliquée (jamais par edit), dégradation gracieuse
-* couverture persistée par projet (`.claude/doccleanup_coverage.md`) pour la reprise de campagne
-
-Distinct de `maintainability` (qui n'a qu'un léger garde anti-drift sur la doc) : ici c'est le nettoyage dédié et agressif de la couche commentaires.
-
-Architecture : `SKILL.md` routeur mince + doctrine partagée + un playbook par mode dans `references/`.
-
-#### Slash commands
-
-| Commande | Rôle |
-|---|---|
-| `/doccleanup [path]` | Nettoie une zone (fichier ou dossier ; sélection auto si pas de path) |
-| `/doccleanup-project` | Campagne globale orchestrée, zone par zone, avec couverture persistée |
-| `/doccleanup-session [--touched]` | Nettoie les fichiers touchés dans la session (`--touched` : hunks modifiés seulement) |
-
-#### Fichiers générés dans le projet nettoyé
-
-* `.claude/doccleanup_coverage.md` — ledger de couverture (une ligne par passe, pour la reprise)
-
----
-
-## Ajouter un nouveau skill
-
-1. Créer `.claude/skills/<name>/` avec son `SKILL.md` (et `references/` si besoin).
-2. Ajouter ses slash commands dans `.claude/commands/<name>/`.
-3. `make list` le découvre automatiquement ; `make install SKILL=<name>` l'installe.
+1. Créer `skills/<name>/SKILL.md` et ses ressources éventuelles.
+2. Ajouter `skills/<name>/agents/openai.yaml` pour les métadonnées Codex.
+3. Ajouter les symlinks `.claude/skills/<name>` et `.agents/skills/<name>` vers `../../skills/<name>`.
+4. Lancer `make validate`.
 
 ## Licence
 
